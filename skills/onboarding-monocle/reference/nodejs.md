@@ -59,7 +59,7 @@ For selected business spans, use `startActiveSpan` around a bounded operation. R
 
 Keep `monocle_middleware` first in `router.use`, before body parsing, session, and authentication middleware, as registered by the official configurator. Do not move it after authentication to populate a resolver.
 
-After existing authentication resolves, call `Monocle.setUser({ id, email, name })` for the authenticated user. Use the stable internal ID and available email and name fields, respecting project restrictions. Map the actual model fields, such as `fullName` to `name`. Do not pass the whole user object.
+After existing authentication resolves, call `Monocle.setUser({ id, email, name })` for the authenticated user. This call is required: the automatic context reads the user when `monocle_middleware` runs, before authentication, so it never attributes requests that authenticate later in the chain. Use the stable internal ID and available email and name fields, respecting project restrictions. Map the actual model fields, such as `fullName` to `name`. Do not pass the whole user object.
 
 Keep the SDK's automatic context defaults unless a project restriction requires an override. Do not add `userContext: false` or a custom resolver just to use `Monocle.setUser`. Keep anonymous requests unattributed and context request-local.
 
