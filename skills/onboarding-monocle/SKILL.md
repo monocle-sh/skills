@@ -38,17 +38,17 @@ Use one Monocle service per deployed unit. A frontend served by the same server 
 A general installation includes:
 
 - Server requests, outgoing calls, and trace context propagation.
-- Database calls, jobs, runtime metrics, and the release version.
+- Database calls, jobs, runtime metrics, and the release version, which Monocle uses to track deployments.
 - Unhandled exceptions and the existing application logs, correlated with traces.
 - Browser errors when the application has a frontend.
 - The authenticated user's ID, email, and name when authentication exists. Do not add authentication or other profile fields.
-- Source-map preparation for compiled JavaScript. Uploads need a private project token and authorization.
+- Source-map upload for compiled JavaScript, with the `MONOCLE_API_KEY` project token from CI secrets. See [javascript-source-maps.md](references/javascript-source-maps.md).
 
-An explicit analytics-only request adds browser analytics and nothing else.
+An explicit analytics-only request adds browser analytics and nothing else. Analytics-only and uptime-only requests need no release version or source maps.
 
 Ask one grouped question about optional features that remain undecided:
 
-> The base setup includes server traces and logs, browser errors, user attribution with ID, email, and name, and source-map preparation. Would you also like analytics, session replay, or browser network tracing? Replay needs visitor consent and masking review.
+> The base setup includes server traces and logs, browser errors, user attribution with ID, email, and name, release tracking, and source-map upload from CI. Would you also like analytics, session replay, or browser network tracing? Replay needs visitor consent and masking review.
 
 Skip what the user already answered, and wait for the answer before enabling an option. In noninteractive runs, leave optional features off. Respect explicit exclusions and project privacy rules.
 
@@ -56,7 +56,7 @@ If Sentry, PostHog, or another vendor covers the same features, ask which featur
 
 ## 3. Connect the service
 
-Use the existing DSN and environment. Keep credentials out of tracked files, logs, and reports.
+Use the existing DSN and environment. Keep credentials out of tracked files, logs, and reports. Never create a project token, and never ask the user to paste a token or DSN key into the conversation.
 
 With the Monocle MCP, confirm the organization and project with `whoami`. With authorization, create missing services with `setup_service` and follow its SDK instructions. Without the MCP, use an existing DSN or the service's **SDK connection** page. Do not change MCP configuration without permission.
 
@@ -70,7 +70,7 @@ Without credentials, finish local configuration with an empty example value and 
 - Preserve error handlers, logger sinks, shutdown behavior, and exit codes. Report each unhandled failure once.
 - Use existing instrumentation. Do not invent routes, durations, or attributes.
 - Take the release version from the application's existing release value. Do not use placeholders or process start times.
-- Reuse existing build and publication scripts. CI and Docker are not prerequisites. Do not create release infrastructure or deployment declarations without a request.
+- Reuse existing build and publication scripts. Add the source-map upload to an existing CI workflow. Without CI, give the upload commands in the recap. Do not create CI, Docker, release infrastructure, or deployment declarations without a request.
 - Keep HTTP body capture off. If an explicit option stays in the configuration, explain its privacy and quota cost in a short comment.
 
 ## 5. Verify and report
