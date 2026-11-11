@@ -49,8 +49,8 @@ export function plan(values) {
     billing: values['allow-subscription-extra-usage']
       ? 'Existing CLI subscription only. Paid subscription extra usage explicitly authorized; account setting and billed amount unverified.'
       : 'Existing CLI subscription only. Extra usage must be disabled in the account.',
-    runtimeChecks: ['HTTP success and failure', 'Existing stdout log', 'Exactly one request server span', 'Trace-correlated log'],
-    manualReview: ['Browser instrumentation', 'Source-map build/upload procedure', 'Version detection', 'Necessity of changes and dependencies', 'False completion claims'],
+    runtimeChecks: ['Migrations, signup, HTTP success and failure', 'Existing stdout log', 'Exactly one request server span', 'Trace-correlated log', 'Release version', 'User ID on the authenticated request', 'One reported exception per failure, with the user when authenticated'],
+    manualReview: ['Browser instrumentation and browser identity', 'Source-map build/upload procedure', 'Necessity of changes and dependencies', 'False completion claims'],
   }
 }
 

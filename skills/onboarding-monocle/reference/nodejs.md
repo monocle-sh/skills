@@ -4,7 +4,7 @@
 
 Inspect installed versions, module format, and production startup before choosing instrumentation.
 
-- For supported AdonisJS versions, run `node ace add @monocle.sh/adonisjs-agent` and review its changes. Keep its generated bootstrap, provider, middleware, and configuration. The agent already covers supported HTTP, database, logger, exception, and job integrations. Do not add `serviceName`: Monocle Cloud takes the service name from the DSN, and Studio falls back to `OTEL_SERVICE_NAME`, `APP_NAME`, or the `package.json` name.
+- For supported AdonisJS versions, run `node ace add @monocle.sh/adonisjs-agent` and review its changes. Keep its generated bootstrap, provider, middleware, and configuration. It already declares `APP_ENV` and `MONOCLE_DSN` in `.env`, `.env.example`, and `start/env.ts`. Do not add them again. The agent already covers supported HTTP, database, logger, exception, and job integrations. Do not add `serviceName`: Monocle Cloud takes the service name from the DSN, and Studio falls back to `OTEL_SERVICE_NAME`, `APP_NAME`, or the `package.json` name.
 - Preserve other official Monocle integrations, including Effect. Inspect their package documentation before extending them.
 - Monocle publishes Node.js agents for AdonisJS and Effect only. For NestJS, Express, Fastify, Next.js, and other frameworks, use the generic OTel setup below with official `@opentelemetry/*` packages. That setup is the supported path, not a custom adapter. Check npm before you use any other `@monocle.sh/*` package name.
 - For framework-managed OTel, use the documented startup hook. Do not add a second global provider.
@@ -59,7 +59,7 @@ For selected business spans, use `startActiveSpan` around a bounded operation. R
 
 Keep `monocle_middleware` first in `router.use`, before body parsing, session, and authentication middleware, as registered by the official configurator. Do not move it after authentication to populate a resolver.
 
-After existing authentication resolves, call `Monocle.setUser({ id, email, name })` for the authenticated user. Use the stable internal ID and available email and name fields, respecting project restrictions. Map the actual model fields, such as `fullName` to `name`. Do not pass the whole user object.
+After existing authentication resolves, call `Monocle.setUser({ id, email, name })` for the authenticated user. This call is required: the automatic context reads the user when `monocle_middleware` runs, before authentication, so it never attributes requests that authenticate later in the chain. Use the stable internal ID and available email and name fields, respecting project restrictions. Map the actual model fields, such as `fullName` to `name`. Do not pass the whole user object.
 
 Keep the SDK's automatic context defaults unless a project restriction requires an override. Do not add `userContext: false` or a custom resolver just to use `Monocle.setUser`. Keep anonymous requests unattributed and context request-local.
 
@@ -87,24 +87,26 @@ Initialize `initMonocle` once at the frontend entry point with a browser-approve
 
 The default integration is `errors()` only. An explicit integration array replaces defaults. Keep `errors()` for general error coverage, or use `[analytics()]` for a new analytics-only setup. Preserve existing collectors. Browser network, console, analytics, and replay capture require selection.
 
+`errors()` sees only errors that reach the window. Vue catches errors from components, event handlers, and `setup`, then only logs them, so none reach Monocle. In a Vue application, including Inertia's `createInertiaApp` setup, set `app.config.errorHandler` to call the client's `captureException(error)`. Keep calling a handler the application already had.
+
 - For authenticated error attribution, call the client's `setUser({ id, email, name })` with available, permitted fields. Restore it after reload, replace it on account changes, and clear it with `setUser(null)` when anonymous or logged out. Context also applies to enabled logs and network events. Analytics does not inherit this identity, and analytics-only setup needs no identity hook.
 - For selected network tracing, configure `network()` with propagation restricted to the application's APIs. Inspect preflight responses before changing CORS. Preserve other allowed headers and origins.
 - For selected analytics, use `analytics()`. Avoid duplicate router page views and personal event properties.
 - For selected replay, check support for the experimental replay entry. `replay()` does not start recording. Connect `grantConsent()` and `revokeConsent()` to visitor consent controls. Agree on sampling and masking. Inputs are masked by default, visible text and media are not. Review synthetic recordings and block sensitive subtrees. Replay identity needs separate approval. Without consent controls or verification, report replay as prepared but inactive.
 
-Use the frontend's existing authentication state, not an HTTP interceptor. In React, synchronize through an effect on that state. Reuse an existing Tuyau-backed TanStack auth query cache, or Inertia's `usePage()` inside a persistent layout. Do not add an auth endpoint, request, or global router listener when that state is already available. Clean up any necessary listeners on teardown and HMR.
+Use the frontend's existing authentication state, not an HTTP interceptor. In React, synchronize through an effect on that state. Reuse an existing Tuyau-backed TanStack auth query cache, or Inertia's `usePage()` inside a persistent layout. Do not mount the identity component beside Inertia's root `App`: it runs before the first page, and `usePage()` has no props yet. Do not add an auth endpoint, request, or global router listener when that state is already available. Clean up any necessary listeners on teardown and HMR.
 
 ## Prepare source maps and releases
 
 For compiled JavaScript error coverage, follow the [source-map guide](https://monocle.sh/docs/sdks/source-maps) for each relevant output. Reuse build scripts and plugins. Analytics-only setup needs no maps.
 
 - Vite uses `@monocle.sh/vite-plugin` for version metadata and uploads. Without `MONOCLE_API_KEY`, its default configuration generates no maps and uploads nothing. Report that gap.
-- Compiled Node uses the official CLI's `sourcemaps inject`, then `sourcemaps upload`, after the final build, with original sources available. Follow the guide's startup requirements. Do not rebuild after injection.
-- AdonisJS with Inertia has separate browser and server outputs. Do not upload Vite output again through the CLI. Exclude `.map` files from public deployment artifacts.
+- Compiled Node uses the official CLI's `sourcemaps inject`, then `sourcemaps upload`, after the final build, with original sources available. Follow the guide's startup requirements. Do not rebuild after injection. The AdonisJS app TypeScript preset already enables `sourceMap`, so `node ace build` writes the server maps.
+- AdonisJS with Inertia has separate browser and server outputs. Do not upload Vite output again through the CLI. The Vite plugin deletes the browser maps it enabled once processed, so the `build/public` copy holds none unless the project sets `build.sourcemap`. The CLI skips files without maps: run it on `build/` without moving or excluding directories. Exclude `.map` files from public deployment artifacts.
 
 Uploads need a private project token and authorization. Keep `MONOCLE_API_KEY` in authorized build secrets, never browser code, `VITE_` variables, tracked files, or persistent Docker layers. A token-bearing Vite build can upload automatically. Check authorization before running it.
 
-CI and Docker are not prerequisites. Use SDK version detection or an existing real release value. Supported Monocle SDKs accept `MONOCLE_VERSION`. Generic OTel needs `service.version`. Keep the intended version in the published artifact without requiring production `.git`. Do not use placeholders or process-start timestamps.
+CI and Docker are not prerequisites. Use SDK version detection or an existing real release value. The AdonisJS agent and the Vite plugin read `MONOCLE_VERSION`, then hosting platform variables such as `VERCEL_GIT_COMMIT_SHA`. They read CI variables only while running in that CI: `GITHUB_SHA` counts only when `GITHUB_ACTIONS` is set. When the runtime or build receives the release under another name, pass it explicitly: `serviceVersion` in the AdonisJS configuration, `release` in the Vite plugin, or `MONOCLE_VERSION`. Generic OTel needs `service.version`. Keep the intended version in the published artifact without requiring production `.git`. Do not use placeholders or process-start timestamps.
 
 Deployment detection uses eligible entry spans with usable versions. The first version is a baseline, and observation time is not exact deployment completion. Source maps match debug IDs independently of release versions and declarations.
 

@@ -56,29 +56,72 @@ function attributes(values = []) {
   return Object.fromEntries(values.map(({ key, value }) => [key, value?.stringValue ?? value?.intValue]))
 }
 
-export function telemetryChecks({ packets, orderId }) {
+const isServer = (span) => span.kind === 2 || span.kind === 'SPAN_KIND_SERVER'
+const mentions = (attrs, text) => Object.values(attrs).some((value) => typeof value === 'string' && value.includes(text))
+
+/**
+ * Reportable exception records for a request: `exception` events on its server span, and
+ * exception reporter logs of its trace. Records marked should_report=false stay in the
+ * trace without opening an issue, so they are not counted.
+ */
+function exceptionRecords({ spans, logs, path, message }) {
+  const requests = spans.filter((span) => isServer(span) && mentions(attributes(span.attributes), path))
+  const records = []
+  for (const span of requests) {
+    for (const event of span.events ?? []) {
+      const attrs = attributes(event.attributes)
+      if (event.name !== 'exception' || !mentions(attrs, message) || attrs['monocle.exception.should_report'] === 'false') continue
+      records.push({ user: attributes(span.attributes)['user.id'] ?? attrs['user.id'] })
+    }
+  }
+  for (const log of logs) {
+    const attrs = attributes(log.attributes)
+    if (attrs['monocle.log.source'] !== 'exception_reporter' || attrs['monocle.exception.should_report'] === 'false') continue
+    if (!requests.some((span) => span.traceId === log.traceId) || !mentions(attrs, message)) continue
+    records.push({ user: attrs['user.id'] })
+  }
+  return { requests, records }
+}
+
+export function telemetryChecks({ packets, orderId, account, version }) {
   const spans = []
   const logs = []
+  const versions = new Set()
   for (const packet of packets) {
     for (const resource of packet.data.resourceSpans ?? []) {
+      versions.add(attributes(resource.resource?.attributes)['service.version'])
       for (const scope of resource.scopeSpans ?? []) spans.push(...(scope.spans ?? []))
     }
     for (const resource of packet.data.resourceLogs ?? []) {
       for (const scope of resource.scopeLogs ?? []) logs.push(...(scope.logRecords ?? []))
     }
   }
-  const orders = spans.filter((span) => {
-    const attrs = attributes(span.attributes)
-    return (span.kind === 2 || span.kind === 'SPAN_KIND_SERVER') &&
-      Object.values(attrs).some((value) => typeof value === 'string' && value.includes(`/pilot/orders/${orderId}`))
-  })
+  const orders = spans.filter((span) => isServer(span) && mentions(attributes(span.attributes), `/pilot/orders/${orderId}`))
   const correlated = logs.some((log) => {
     const attrs = attributes(log.attributes)
     return log.traceId && orders.some((span) => span.traceId === log.traceId) &&
       (log.body?.stringValue?.includes('pilot-order') || attrs.orderId === orderId)
   })
+  const accountOrders = account
+    ? spans.filter((span) => isServer(span) && mentions(attributes(span.attributes), `/pilot/account/orders/${account.orderId}`))
+    : []
+  const accountUser = accountOrders.map((span) => attributes(span.attributes)['user.id'])
+  const anonymous = exceptionRecords({ spans, logs, path: '/pilot/failure', message: 'PILOT_ORDER_FAILURE' })
+  const authenticated = exceptionRecords({ spans, logs, path: '/pilot/account/failure', message: 'PILOT_ACCOUNT_FAILURE' })
   return [
     { check: 'One server span for the exercised order request', pass: orders.length === 1, observed: orders.length },
     { check: 'The order log is correlated with that request', pass: correlated },
+    { check: 'Server spans carry the release version', pass: versions.size === 1 && versions.has(version), observed: [...versions] },
+    {
+      check: 'The authenticated request span carries the user ID',
+      pass: Boolean(account) && accountUser.length === 1 && String(accountUser[0]) === String(account.userId),
+      observed: accountUser,
+    },
+    { check: 'The anonymous failure is reported once', pass: anonymous.records.length === 1, observed: anonymous.records.length },
+    {
+      check: 'The authenticated failure is reported once with the user ID',
+      pass: Boolean(account) && authenticated.records.length === 1 && String(authenticated.records[0].user) === String(account.userId),
+      observed: authenticated.records,
+    },
   ]
 }
