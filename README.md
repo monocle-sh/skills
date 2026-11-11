@@ -39,7 +39,9 @@ Example requests:
 - "Audit this Monocle installation without editing files."
 - "Find why PostgreSQL queries do not appear in Monocle for staging."
 
-Onboarding starts with technical instrumentation. User identification and business spans are optional. HTTP bodies, headers, cookies, and AI content are not captured by default.
+General onboarding includes technical instrumentation, authenticated user attribution with ID, email, and name when available, and source-map preparation for compiled JavaScript. Explicit opt-outs and project privacy restrictions take precedence. Analytics, replay, browser network capture, and business spans are optional. Other profile fields, HTTP bodies, headers, cookies, and AI content are not captured by default. Source-code uploads need authorization and a private project token.
+
+The agent inspects before asking one grouped question about relevant optional coverage. If another vendor is installed, it asks which features to retain or replace before overlapping changes. CI and Docker are not required. Missing credentials or publication steps are reported with their feature impact and concrete next actions, without inventing deployment infrastructure.
 
 ## Validation status
 

@@ -1,54 +1,66 @@
 # Verify an installation
 
-Use synthetic data and the application's own start and test commands. Follow project restrictions on builds and other checks. Never run a payment, send real customer mail, or enqueue production work as a smoke test.
+Use synthetic data, the real application bootstrap, and project-approved checks. Never trigger payments, customer mail, or production jobs. Test only agreed coverage. Analytics-only scope needs browser events, not server telemetry or an error probe. Confirm that existing instrumentation remains intact.
 
-## Verify startup and emission
+## Verify application export
 
-1. Record the target service, environment, runtime, SDK versions, and enabled signals. Keep credentials out of the record.
-2. Run existing targeted checks. Start or import the application through its real telemetry bootstrap, not a separate script that bypasses it.
-3. Exercise one representative route, job, or CLI operation. Confirm the route template, span kind, method, status, and child operations that were promised.
-4. In an existing test or temporary local fixture, exercise an unhandled failure and a recovered child failure. Expect one reportable failure for the former and no new issue for the latter. A plain error log is not sufficient proof of exception reporting.
-5. Emit a synthetic log inside an active span. Check its native trace and span IDs if log forwarding is enabled.
-6. For enabled metrics, cause a known measurement and allow a collection interval or explicit supported flush. Check its name, value, unit, and resource identity.
-7. If cross-service tracing is promised, send a known valid incoming W3C context and make an outgoing call to a controlled endpoint. Check trace continuity, parent IDs, and outgoing propagation. Do not send trace context or ingestion credentials to arbitrary hosts.
-8. End the operation, shut down gracefully, and inspect final export errors or partial-success responses. Verify that the process still exits as before.
+1. Record the service, environment, runtime, SDK versions, and enabled signals without credentials.
+2. Run targeted checks and start the application through its actual startup command.
+3. Exercise a representative route, job, or command and its promised child operations. Inspect route templates, kinds, methods, and final status. For AdonisJS, check that telemetry middleware runs first and exercise an early body-parser or auth rejection.
+4. Exercise an unhandled failure and a recovered child failure. Verify exception details. The former produces one reportable failure, the latter no new issue. An error log alone does not prove issue reporting.
+5. Emit a structured application log inside an active span. Decode its OTLP body, severity, business fields, and native trace and span IDs. Preserve correlation IDs and standard error details. Stdout and separate exception-reporter logs do not prove application log export.
+6. If targeted redaction was necessary, verify a synthetic excluded value is absent while unrelated diagnostics survive. Do not introduce redaction merely to satisfy this check or use real secrets as probes.
+7. For enabled metrics, cause a known measurement and wait for collection or a supported flush. Check the value, unit, name, and resource.
+8. For promised cross-service traces, supply valid incoming W3C context and call a controlled downstream endpoint. Verify parentage and outgoing propagation, without sending ingestion credentials to application endpoints.
+9. Shut down gracefully. Inspect export errors and partial-success responses. Confirm unchanged exit behavior.
 
-For generic OTel setups, a local Collector with a detailed debug exporter can decode the real OTLP requests. Bind it to loopback, enable HTTP only, and inspect the native fields. No production DSN is needed for a local receiver. A console exporter alone proves creation, not OTLP transport. A local receiver does not test Monocle authorization or storage.
+A loopback Collector with HTTP reception and detailed debug output can decode real OTLP without a production DSN. A console exporter proves creation, not transport. A local receiver does not prove Monocle authorization or storage. Do not expose the receiver or record private telemetry.
 
-Use the [upstream Collector example](https://opentelemetry.io/docs/languages/python/exporters/#collector-setup) as a starting point, but omit its gRPC receiver. Do not expose a debug receiver publicly or print real telemetry into a review artifact.
+For changed bootstrap, shutdown, or logger code, also check repeated initialization, concurrent context isolation, unavailable exporters, bounded shutdown, and diagnostic feedback loops. Keep behavior tests where the project supports them. Remove temporary probes and debug logging.
 
-## Check the destination
+## Verify browser features
 
-With authorization to send test data, use the intended DSN and the `development` environment unless the user specifies another safe target. Do not silently redirect an application away from its configured destination.
+Check the selected features through the actual browser client:
 
-1. Send a synthetic operation with a unique nonpersonal marker attribute.
-2. Wait for batching and ingestion. Search a bounded time window in the correct project, environment, and service.
-3. Locate the trace and inspect its actual attributes. Locate a correlated log and an exported metric when enabled. Locate the expected issue for the failure fixture.
-4. Confirm that the recovered child failure did not create an issue and that one failure was not captured twice.
+- Errors emit and flush. Unselected collectors remain inactive.
+- Network tracing preserves browser-to-server context and restricts propagation to intended hosts. A backend span alone proves neither.
+- User attribution includes the permitted ID, email, and name fields when available, survives authentication and reload, replaces identity on account changes, and clears on logout. Check anonymous and concurrent server requests, and confirm excluded fields remain absent. Skip identity when excluded or analytics-only.
+- Analytics produces one expected page view per navigation without personal event properties.
+- Replay records nothing before consent, masks synthetic content after consent, and stops after withdrawal. Review the recording, not just an upload response.
 
-Use available read-only Monocle MCP tools after discovering their schemas, or inspect the Monocle UI. Tool names from Maple, including `audit_setup`, are not assumed to exist in Monocle.
+Do not enable an unselected feature to test it. Configuration inspection alone does not verify an authentication or consent lifecycle.
 
-No cloud access means **cloud unverified**, not success. A successful fallback curl from `setup_service` proves access to ingestion, not that the application's instrumentation works. `Last used` proves credential use, not retention. Even HTTP 2xx can accompany discarded data when the telemetry budget is exhausted.
+## Verify builds and publication
 
-## Check lifecycle where relevant
+Inspect the actual CI, platform build, or manual publication path. CI and Docker are not required. Check the real version source and the artifact's retained metadata.
 
-For changes to bootstrap, shutdown, or logger integration, also test the likely regression:
+For compiled JavaScript error coverage, check each relevant browser and server output. Verify debug-ID injection, authorized upload, private token handling, and exclusion of public `.map` files. Source maps match debug IDs, independently of deployment declarations.
 
-- Repeated initialization or reload must not double the number of emitted records.
-- Concurrent requests must not share trace or user context.
-- An unavailable exporter must not break application requests or cause unbounded shutdown waits.
-- Exporter diagnostics must not create an export feedback loop.
+With authorization and credentials, verify an original source frame from the matching deployed build in Monocle. A plugin entry or successful build does not prove upload or resolution. Report missing tokens, upload steps, deployed builds, and verified frames separately. Give the concrete next step and the check to rerun after publication. Do not create deployment infrastructure to close a verification gap.
 
-Keep durable tests for user-visible behavior when the project has a suitable test location. Remove temporary smoke code, capture fixtures, and debug logging after the run.
+For retained vendors, check initialization, provider ownership, patches, and duplicate events against installed versions. Report untested coexistence. Do not infer compatibility or memory conflicts from package presence.
 
-## Report the evidence
+## Verify cloud storage
 
-Use one status per service:
+With authorization, send a synthetic operation to the intended DSN and safe environment, usually `development`. Do not silently redirect the application.
+
+1. Add a unique nonpersonal marker and wait for batching and ingestion.
+2. Search the correct project, service, environment, and bounded time window.
+3. Locate stored records for each claimed signal. Verify correlated logs and issues where selected, or browser events for analytics-only scope.
+4. Confirm that recovered exceptions create no issue and reportable failures are not duplicated.
+
+Discover available read-only Monocle MCP schemas or inspect the UI. Do not assume Maple tools exist. HTTP acceptance, `Last used`, or a fallback `setup_service` curl does not prove application storage. Check partial success, sampling, filters, time window, and budget before diagnosing a missing record.
+
+## Report evidence and gaps
+
+Use one status per service, limited to observed signals:
 
 | Status | Required evidence |
 | --- | --- |
-| Cloud verified | Actual application emission and matching stored records in Monocle for each claimed signal |
-| Local export verified | Actual application OTLP decoded by a local receiver, with cloud checks explicitly pending |
-| Not verified | Only configuration, startup, console output, access checks, or incomplete observations |
+| Cloud verified | Application emission and matching Monocle records for each claimed signal |
+| Local export verified | Decoded application OTLP, with cloud checks pending |
+| Not verified | Configuration, startup, console output, access checks, or incomplete observations only |
 
-List partially verified signals separately. State observed facts and remaining hypotheses. Do not call a missing record an exporter defect until you have checked the active code path, target environment, sampling, time window, filters, and budget.
+List defaults, selected additions, explicit exclusions, and blockers. Required logs remain a coverage gap when their bridge is disabled. Do not reclassify that gap as an optional omission.
+
+Separate source-map configuration, upload, original-frame resolution, version metadata, and detected or declared deployments. A version observation is not exact deployment completion. Name each missing step and its feature impact without requesting secret values in chat. Distinguish observations from hypotheses.

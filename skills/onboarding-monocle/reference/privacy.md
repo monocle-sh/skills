@@ -1,18 +1,29 @@
-# Configure optional sensitive capture
+# Handle sensitive telemetry
 
-Use this procedure only when the user explicitly requests sensitive content capture. Default onboarding does not collect HTTP bodies, headers, cookies, command arguments, or AI content.
+## Preserve diagnostics
 
-1. Name the exact diagnostic purpose and the endpoints or operations involved.
-2. Propose an allowlist of fields and routes. Exclude authentication, payments, file uploads, tokens, passwords, cookies, and authorization headers.
-3. Set a maximum captured size and supported content types. Skip binary, multipart, streaming, and oversized payloads.
-4. Redact before export. Do not rely on downstream grouping or UI hiding to remove sensitive data.
-5. Use an existing SDK capture feature when available. Do not consume a request stream or buffer a response solely to recreate a full SDK feature.
-6. Ask for approval of this capture policy before enabling it. Keep the rest of onboarding independent of the answer.
-7. Test synthetic allowed and denied payloads. Confirm that handlers still receive their original request data, responses are unchanged, and excluded values never reach the exporter.
-8. Document how to disable capture. Do not change production configuration or deploy it without authorization.
+Keep ordinary application logs, structured business fields, correlation IDs such as `x-request-id`, and standard error details. Neither an identifier nor an `err` key proves sensitive content. Error messages can contain secrets, so inspect the actual logger calls, serializers, and SDK behavior before deciding.
 
-For user attribution, an approved opaque user ID is sufficient. Email and display name need their own justification. Preserve logout behavior and concurrent-request isolation. An opaque ID may still be personal data.
+When a concrete field contains credentials or disallowed personal data, redact that field before export through existing logger or SDK controls. Preserve other diagnostics and native correlation. Do not add global field allowlists, custom processors, or blanket header removal to guard against hypothetical leaks.
 
-For AI instrumentation, inspect package defaults. Disable prompt, completion, tool-argument, and tool-result capture before enabling it. Timing, model names, errors, and token counts do not require conversation content.
+Never export credentials. If supported controls cannot resolve an observed exposure, keep the affected export inactive and report the missing coverage and next action. Do not silently disable the whole logger bridge or claim completion.
 
-Sources: [HTTP instrumentation](https://monocle.sh/docs/frameworks/adonisjs/http), [browser privacy](https://monocle.sh/docs/sdks/browser), and [semantic conventions](https://monocle.sh/docs/opentelemetry/semantic-conventions).
+## Bound optional capture
+
+Arbitrary HTTP body or header capture, cookies, command arguments, and AI content are outside default onboarding. Existing correlation metadata is not a request to collect all headers.
+
+For an explicit content-capture request:
+
+1. Agree on the diagnostic purpose, routes, and fields. Exclude credentials, authorization headers, payment details, and other disallowed content.
+2. Set size limits and supported content types. Skip binary, multipart, streaming, and oversized payloads.
+3. Use native capture and pre-export redaction. Do not consume request streams or buffer responses to recreate an SDK feature.
+4. Obtain approval before enabling capture. Developer approval does not replace visitor consent for replay.
+5. Test synthetic allowed and excluded values through the exporter. Confirm unchanged application behavior. Document how to disable capture.
+
+For AI integrations, inspect defaults and disable prompt, completion, tool-argument, and tool-result capture. Model names, timing, errors, and token counts need no conversation content.
+
+## Limit identity
+
+Error coverage with existing authentication uses the stable internal ID, email, and name when available. Respect identity opt-outs and project restrictions. Omit unavailable or excluded fields. Do not use email as the stable ID or pass entire user objects. Other profile fields and replay identity need separate approval. IDs, emails, and names are personal data. Analytics-only setup adds no identity hook.
+
+Sources: [user attribution](https://monocle.sh/docs/frameworks/adonisjs/users-and-exceptions), [HTTP capture](https://monocle.sh/docs/frameworks/adonisjs/http), [browser privacy](https://monocle.sh/docs/sdks/browser), and [semantic conventions](https://monocle.sh/docs/opentelemetry/semantic-conventions).

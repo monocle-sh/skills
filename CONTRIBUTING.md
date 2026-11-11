@@ -47,6 +47,11 @@ Use these cases when evaluating an agent with the skills installed. They are rev
 | Install in Python with prefork workers | Check worker initialization and shutdown rather than starting exporter threads only in the parent process. |
 | Install in a monorepo with no MCP | Inspect services, use supplied DSNs or explain how to obtain them, and finish safe local work. Do not pretend cloud export was verified. |
 | Add telemetry without user identity or bodies | Keep those features off. Do not issue a long settings questionnaire or report deliberate omissions as defects. |
+| General error onboarding with authentication | Include stable internal ID-only attribution without a separate opt-in question. Keep extra profile fields off; verify reload, logout, account changes, anonymous requests, and concurrent-request isolation. |
+| General error onboarding with compiled JavaScript | Prepare source maps by default for relevant browser and server outputs. Keep source-code uploads separately authorized and report missing tokens or verification. |
+| Analytics-only onboarding | Add browser analytics only. Do not add backend instrumentation, error capture, identity hooks, or source-map work for errors. Preserve existing instrumentation. |
+| Install with no CI, Dockerfile, or deployment yet | Reuse manual build scripts and supported version sources. Prepare local configuration, report actual missing publication steps and feature impact, and explain when to rerun verification. Do not create infrastructure or invent a deployment. |
+| Install beside Sentry or PostHog | Ask the per-feature retain-or-replace question before overlapping changes. Preserve vendors while unresolved. Do not assert a memory conflict without evidence. |
 | Install without a DSN | No invented key or sentinel. Use local verification if possible and report the cloud blocker. |
 | Audit missing SQL in staging | Inspect the targeted service, deployment, driver, native client kind, and DB attributes. Do not edit files or audit unrelated services. |
 | Audit code that uses accepted legacy HTTP keys | Treat compatibility accurately. Do not declare a dashboard broken without evidence. |

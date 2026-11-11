@@ -1,54 +1,50 @@
 ---
 name: auditing-monocle
-description: "Audits an existing Monocle or OpenTelemetry installation and diagnoses missing or incorrect telemetry. Use for instrumentation reviews, missing requests or queries, broken trace correlation, duplicate issues, and export problems. Read-only unless fixes are requested."
+description: "Audits Monocle or OpenTelemetry installations and diagnoses missing telemetry, broken correlation, duplicate issues, and export problems. Read-only unless fixes are requested."
 ---
 
-# Audit or diagnose Monocle telemetry
+# Audit Monocle telemetry
 
-Find what the installation actually emits, what Monocle receives, and which user-visible feature is affected. Inspect first. Do not edit code, change configuration, create resources, or send test telemetry unless the user authorizes that action.
+Determine what the application emits, what Monocle stores, and which feature is affected. Do not edit configuration, create resources, or send test telemetry without authorization.
 
-## 1. Select the scope
+## 1. Define the scope
 
-For a general audit, enumerate deployable services and classify each as instrumented, partial, not instrumented, or intentionally excluded. Compare against the requested coverage. A service without telemetry is not automatically a critical defect.
+For a general audit, list deployable services and classify their coverage as instrumented, partial, absent, or intentionally excluded. Compare against agreed coverage, not every SDK feature.
 
-For a specific symptom, inspect the affected service and signal first. Do not turn a missing-query question into an unrelated monorepo audit. Establish the project, environment, time window, and deployed version when live data matters. Ask only for facts unavailable from the repository or connected tools.
+If intent changes a finding and cannot be recovered, ask rather than assume.
 
-Read [the check registry](reference/checks.md). For a targeted investigation, also read [the diagnosis procedure](reference/diagnosis.md). Both references are bundled here. This skill does not require the onboarding skill to be installed.
+General onboarding includes server traces, errors, existing application logs, supported metrics, and browser errors. Authenticated error coverage adds the user's ID, email, and name when available. Compiled JavaScript error coverage adds source-map preparation. Respect explicit exclusions and project restrictions.
 
-## 2. Inspect the active configuration
+Browser network, analytics, replay, extra console capture, and other profile fields require selection. Source uploads require authorization. An analytics-only request needs browser analytics, not new backend instrumentation. Preserve existing backend coverage.
 
-Read manifests, lockfiles, startup commands, deployment configuration, provider setup, instrumentation hooks, logger bridges, and lifecycle handlers. Follow configuration to the code path that is actually run.
+For a specific symptom, start with the affected service and signal. Establish the project, environment, time window, and deployed version. Ask only for missing facts that affect the diagnosis.
 
-Apply relevant checks, not every optional feature. Identify each enabled SDK and version. Check installed APIs before treating a configuration shape as valid. Separate a deliberate opt-out from a broken promise, an unsupported feature, and a missing verification step.
+Read [the check registry](reference/checks.md) and, for a specific symptom, [the diagnosis procedure](reference/diagnosis.md). Both references belong to this independently installable skill.
 
-Never reproduce real DSNs, API keys, headers, bodies, prompts, or personal data in the report. Cite a redacted location instead.
+## 2. Inspect the active code
+
+Follow manifests, startup commands, providers, hooks, logger bridges, and lifecycle handlers to the path that actually runs. Check installed SDK versions and APIs.
+
+Preserve ordinary diagnostics. A correlation ID, business field, or `err` key alone is not a privacy defect. Flag concrete sensitive content and unnecessary custom filtering separately. Prefer SDK defaults and targeted native controls over global allowlists or custom processors.
+
+For other vendors, inspect recorded retain-or-replace decisions, provider ownership, patches, and duplicate emissions. Package presence proves neither a memory conflict nor compatibility. Do not recommend removal without approval.
+
+Keep credentials and private telemetry out of findings. Cite redacted file locations.
 
 ## 3. Cross-check observations
 
-Use existing read-only Monocle MCP tools when available. Discover current tool schemas, confirm the project, and query the affected service, environment, version, and bounded time window. Start with aggregate counts and narrow samples. Do not retrieve broad raw logs when counts or metadata answer the question.
+Discover read-only Monocle MCP schemas or inspect the UI. Query the correct service and bounded time window. Prefer counts and narrow samples over broad raw logs.
 
-Without MCP, finish the static audit and state which claims remain unverified. Do not install MCP mid-audit or assume Maple's `audit_setup` exists in Monocle.
+Without cloud access, finish the static audit and mark storage claims unverified. Do not install MCP or assume Maple's `audit_setup` exists. Resolve differences between repository and deployed versions before naming a cause.
 
-Repository code and live data may describe different deployed versions or emitters. Neither automatically overrides the other. Resolve the discrepancy before naming a cause.
+Run reproductions only within authorization. Never use payments, customer mail, or production jobs as probes.
 
-If reproduction requires starting the application or sending a synthetic operation, explain the proposed safe local test. Run it only within the user's authorized scope. Never trigger real payments, emails, production jobs, or infrastructure changes as a diagnostic probe.
+## 4. Report findings
 
-## 4. Report findings before fixes
+For each finding, provide its check ID, service, feature impact, evidence, smallest fix, and validation check. Mark the conclusion as confirmed, hypothesis, or not verified. Write findings in your reply, not in project files.
 
-Each finding contains:
+Use critical severity for confirmed security exposure or loss of required telemetry, warning for confirmed degradation, and info for optional improvements. Do not report intentionally disabled options as failures.
 
-- A registry check ID, service, and affected feature.
-- Severity based on actual impact and the user's intended coverage.
-- Evidence from code, decoded export, or live observations, with safe file locations or bounded counts.
-- A status: **confirmed**, **hypothesis**, or **not verified**.
-- The smallest proposed fix and the check that would validate it.
+For release readiness, distinguish version metadata, deployment observations, source-map preparation, upload, and original-frame resolution. CI and Docker are not prerequisites. Name the actual missing token, build, or publication step and when to rerun verification.
 
-Use **critical** for a confirmed security exposure or loss of required telemetry, **warning** for confirmed degradation, and **info** for optional improvements. Do not assign a confirmed failure severity to an unsupported hypothesis. State missing evidence.
-
-For a targeted diagnosis, lead with the answer or the most likely remaining hypothesis. For a general audit, group findings by service and prioritize the fixes. Never fill the report with one warning per intentionally disabled option.
-
-## 5. Stop or apply authorized fixes
-
-For an audit-only request, stop after the findings. For an explicit fix request, make the smallest relevant change, preserve other vendors and application behavior, and rerun the failing scenario. Use the installed SDK documentation and [Monocle's conventions](https://monocle.sh/docs/opentelemetry/semantic-conventions) for the fix. Do not invent framework helpers or copy Maple's key mappings.
-
-If configuration is missing entirely, recommend the onboarding workflow instead of generating a full adapter. If local verification succeeds but the deployed version has not changed, report that distinction. Do not deploy, rotate keys, change billing, commit, push, or publish unless separately authorized.
+For audit-only requests, stop after findings. For authorized fixes, preserve application behavior and other vendors, then rerun the failing check. Use installed SDK documentation and [Monocle conventions](https://monocle.sh/docs/opentelemetry/semantic-conventions). Do not deploy, rotate keys, change billing, commit, push, or publish without separate authorization.

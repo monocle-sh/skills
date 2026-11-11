@@ -2,9 +2,33 @@
 
 ## Inspect the runtime and subscriber
 
-Read `Cargo.toml`, `Cargo.lock`, the async runtime, the server entry point, and the existing `tracing` subscriber. Check whether an official Monocle integration is actually published and supports this framework before recommending it. Do not prescribe an unpublished path dependency from Monocle's private repository.
+Read `Cargo.toml`, `Cargo.lock`, the async runtime, the server entry point, and the existing `tracing` subscriber.
 
-When using native OTel, keep the `opentelemetry`, `opentelemetry_sdk`, `opentelemetry-otlp`, and logging bridge releases compatible. Match `tracing-opentelemetry` to that SDK release. Resolve APIs from the installed crate documentation, not a hard-coded version table.
+## Use the Monocle SDK
+
+The `monocle-sh-sdk` crate exposes `monocle` in Rust code. It sends `tracing` spans, logs, and metrics, and reports errors and panics. Its `axum` feature adds a server layer. Follow the [Rust guide](https://monocle.sh/docs/sdks/rust) and the installed crate documentation:
+
+- Call `monocle::init` once at startup, add `monocle.layer()` to the existing subscriber, and call `monocle::install_panic_hook()`. Keep the client until the server stops, then call `shutdown()`.
+- Read `MONOCLE_ENVIRONMENT` and `MONOCLE_VERSION` from the process environment. Do not default the environment to `development`, because a production process that misses the variable would report as development.
+- `init` requires a DSN and has no Studio mode. When `MONOCLE_DSN` is absent, keep the existing subscriber, log one line that says Monocle is off, and report local export as blocked.
+- Add `monocle::axum::layer()` after the routes. It creates the SERVER span with the route template, continues `traceparent`, and marks 5xx responses as failed.
+- Call `monocle::capture_error` once in the existing error-to-response conversion for unexpected 5xx errors. `tracing::error!` alone stays a log and opens no issue.
+- Use `monocle-sh-sdk` 0.1.1 or later for user attribution. In the authentication extractor or middleware, after the user resolves, call `monocle::set_user(monocle::User { id, email, name })` with the existing ID, email, and name. It sets `user.id`, `user.email`, and `user.name` on the request span, and exceptions that `capture_error` or the panic hook report later in the same request carry the same user. Concurrent requests keep their own user. Outside a request span it does nothing, so call it inside the request.
+- Database calls need their own instrumentation. sqlx emits no OTel CLIENT spans. Instrument the existing query functions with `tracing::Instrument` and a span that sets `otel.kind = "client"`, `db.system.name`, `db.operation.name`, `db.collection.name`, and the parameterized `db.query.text`. Never record bind values. When a query fails, record `otel.status_code = "ERROR"` on its span, or the Queries view counts no error. If queries have no shared call site, report database coverage as partial instead of wrapping every call.
+
+Rust issues show raw frames until the build's debug file is uploaded. For Linux x86_64 ELF/DWARF builds, follow [native symbols](https://monocle.sh/docs/sdks/native-symbols):
+
+- Keep `debug = 1` and `strip = false` in the release profile, so the build keeps functions, files, and lines.
+- After the final build, run `npx @monocle.sh/cli debug-files upload <binary>` with `MONOCLE_API_KEY` from authorized CI secrets. The CLI 0.6 or later needs Node.js 22.12 or later. Pass the commit with `--release` when the pipeline has one.
+- `--include-sources` uploads checkout files for code excerpts. Add it only with source-upload authorization. `debug-files check` lists the files first.
+- Strip the binary after the upload and deploy that binary. A rebuild produces a new build ID.
+- In a Docker build, export the unstripped binary from a dedicated stage and upload it from the CI checkout. Never pass the token to the build stage.
+
+Without a publication workflow, give the build and upload commands in the report and the recap. Report frame resolution as unavailable until an upload succeeds. Other targets keep raw frames.
+
+## Use native OTel
+
+Use native OTel when the SDK does not support the framework or runtime. Keep the `opentelemetry`, `opentelemetry_sdk`, `opentelemetry-otlp`, and logging bridge releases compatible. Match `tracing-opentelemetry` to that SDK release. Resolve APIs from the installed crate documentation, not a hard-coded version table.
 
 ## Configure exports and layers
 
@@ -48,7 +72,9 @@ Short-lived commands need explicit provider shutdown. Runtime metrics require ac
 
 ## Sources
 
+- [Monocle Rust SDK](https://monocle.sh/docs/sdks/rust)
 - [Rust OTel](https://opentelemetry.io/docs/languages/rust/)
+- [Native symbols](https://monocle.sh/docs/sdks/native-symbols)
 - [OTLP crate and features](https://docs.rs/opentelemetry-otlp/)
 - [tracing bridge](https://docs.rs/tracing-opentelemetry/)
 - [logging bridge](https://docs.rs/opentelemetry-appender-tracing/)
