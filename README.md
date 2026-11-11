@@ -26,7 +26,7 @@ Ask your agent, for example:
 - "Audit this Monocle installation without editing files."
 - "Find why PostgreSQL queries do not appear in Monocle for staging."
 
-The agent asks before it enables analytics, session replay, or browser network tracing. It does not upload source maps, deploy, or push without your approval.
+The agent asks before it enables analytics, session replay, or browser network tracing. It adds the source-map upload to your CI with a `MONOCLE_API_KEY` secret, and never asks you to paste a token. It does not deploy or push.
 
 ## Contribute
 
