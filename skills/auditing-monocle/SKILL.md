@@ -19,7 +19,7 @@ Browser network, analytics, replay, extra console capture, and other profile fie
 
 For a specific symptom, start with the affected service and signal. Establish the project, environment, time window, and deployed version. Ask only for missing facts that affect the diagnosis.
 
-Read [the check registry](reference/checks.md) and, for a specific symptom, [the diagnosis procedure](reference/diagnosis.md). Both references belong to this independently installable skill.
+Read [the check registry](references/checks.md) and, for a specific symptom, [the diagnosis procedure](references/diagnosis.md). Both references belong to this independently installable skill.
 
 ## 2. Inspect the active code
 

@@ -6,7 +6,7 @@ Use synthetic data, the real application bootstrap, and project-approved checks.
 
 1. Record the service, environment, runtime, SDK versions, and enabled signals without credentials.
 2. Run targeted checks and start the application through its actual startup command.
-3. Exercise a representative route, job, or command and its promised child operations. Inspect route templates, kinds, methods, and final status. For AdonisJS, check that telemetry middleware runs first and exercise an early body-parser or auth rejection.
+3. Exercise a representative route, job, or command and its promised child operations. Inspect route templates, kinds, methods, and final status.
 4. Exercise an unhandled failure and a recovered child failure. Verify exception details. The former produces one reportable failure, the latter no new issue. An error log alone does not prove issue reporting.
 5. Emit a structured application log inside an active span. Decode its OTLP body, severity, business fields, and native trace and span IDs. Preserve correlation IDs and standard error details. Stdout and separate exception-reporter logs do not prove application log export.
 6. If targeted redaction was necessary, verify a synthetic excluded value is absent while unrelated diagnostics survive. Do not introduce redaction merely to satisfy this check or use real secrets as probes.

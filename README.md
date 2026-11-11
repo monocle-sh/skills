@@ -4,7 +4,7 @@ Agent skills for connecting an application to [Monocle](https://monocle.sh) and 
 
 | Skill | Use it to |
 | --- | --- |
-| [onboarding-monocle](skills/onboarding-monocle/SKILL.md) | Configure official SDKs or native OpenTelemetry in an application or monorepo. Includes Node.js, Go, Rust, and Python references. |
+| [onboarding-monocle](skills/onboarding-monocle/SKILL.md) | Configure official SDKs or native OpenTelemetry in an application or monorepo. Works in any language with an OpenTelemetry SDK, with dedicated references for AdonisJS, Next.js, other Node.js servers, browsers, Go, Python, and Rust. |
 | [auditing-monocle](skills/auditing-monocle/SKILL.md) | Review an existing installation or investigate a specific missing or incorrect signal. Makes no changes unless requested. |
 
 The onboarding skill configures applications. It does not ask users to build or publish Monocle adapters. Both skills work without the Monocle MCP. Each skill includes its own references and can be installed separately.
@@ -19,13 +19,13 @@ Clone this repository outside the application you want to instrument:
 git clone https://github.com/monocle-sh/skills.git monocle-skills
 ```
 
-Copy the complete directory of each selected skill, including `reference/`, into the skill directory your agent supports. For agents that discover `.agents/skills/`, the resulting paths are:
+Copy the complete directory of each selected skill, including `references/`, into the skill directory your agent supports. For agents that discover `.agents/skills/`, the resulting paths are:
 
 ```text
 .agents/skills/onboarding-monocle/SKILL.md
-.agents/skills/onboarding-monocle/reference/...
+.agents/skills/onboarding-monocle/references/...
 .agents/skills/auditing-monocle/SKILL.md
-.agents/skills/auditing-monocle/reference/...
+.agents/skills/auditing-monocle/references/...
 ```
 
 Keep existing skills intact. Follow your agent's reload instructions after installation. Installing only a `SKILL.md` loses the bundled references.
