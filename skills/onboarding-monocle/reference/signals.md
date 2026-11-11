@@ -75,12 +75,12 @@ An explicit capture outside that path can use an OTLP log with `exception.type`,
 
 OTLP logs carry their body, severity, attributes, and native trace and span ID fields. Putting IDs only in the message or string attributes does not establish native correlation. The existing logger's console and file sinks remain intact. Exporter diagnostics must not feed back into the same OTLP log bridge.
 
-## Optional enrichment
+## Feature enrichment
 
 | Feature | Attributes and limits |
 | --- | --- |
-| User attribution | `user.id` on request spans or explicit reports after consent. Use an opaque ID. `user.email` and `user.name` are optional personal data, not defaults. `enduser.id` is not read. Clear identity on logout and isolate request context. |
-| Business operations | Active spans around selected operations with real latency or failure modes. Stable names such as `order.process`. Opaque entity identifiers only after approval. |
+| User attribution | `user.id` is the stable internal ID. Authenticated error onboarding includes it with `user.email` and `user.name` when available and permitted. Other profile fields need approval. `enduser.id` is not read. Identity follows authentication, logout, account changes, and request isolation. Analytics-only scope adds no identity hook. |
+| Business operations | Selected operations use active spans with stable names such as `order.process`. Existing entity IDs can provide useful diagnostics and are not inherently sensitive. Per-entity span names cause unbounded cardinality. |
 | Cache | `cache.operation` identifies the operation. `cache.hit` describes hits, `cache.store` the store, and optional `cache.key` the key. Keys may contain sensitive data and are not needed by default. |
 | Email | The current email dashboard expects `CLIENT`, `email.system=adonisjs-mail`, and `email.operation=send`. Do not label another mail library as AdonisJS to make it appear. Subject and recipient attributes are not default collection. |
 | AI | `gen_ai.operation.name` classifies operations. Model names and actual `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, and `gen_ai.usage.input_tokens.cached` support usage and cost. Monocle computes cost from supported models and tokens. No Maple-specific cost or session attributes are needed. |

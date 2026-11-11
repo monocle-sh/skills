@@ -1,83 +1,76 @@
 ---
 name: onboarding-monocle
-description: "Configures Monocle observability in an application or monorepo using official SDKs or native OpenTelemetry. Use when asked to install Monocle, connect a service, or instrument Node.js, Go, Rust, or Python applications."
+description: "Configures Monocle using official SDKs or native OpenTelemetry. Use to install Monocle, connect services, or instrument Node.js, Go, Rust, or Python applications."
 ---
 
 # Set up Monocle in an application
 
-Connect the requested applications to Monocle, preserve their behavior, and verify the signals you claim to support. Configure the user's application. Do not build a reusable adapter, exporter, or SDK package.
+Configure the requested application, preserve its behavior, and verify its telemetry. Do not build an adapter, exporter, or SDK package.
 
-## 1. Inspect the repository
+## 1. Inspect the application
 
-Read project guidance, manifests, lockfiles, start commands, deployment configuration, and existing telemetry setup. Identify deployable services, runtimes, frameworks, database drivers, queue clients, and loggers. Exclude libraries with no runtime entry point and repositories outside the requested scope.
+Read project guidance, manifests, lockfiles, startup commands, publication scripts, and existing telemetry. Identify deployable services, frameworks, loggers, databases, queues, and authentication.
 
-List the services and proposed coverage in a short message. Reuse existing Monocle services. An AdonisJS app serving its own Edge or Inertia frontend can use one service and DSN. A separately deployed frontend is a separate service. Preserve deliberate existing service boundaries.
+State the services and proposed coverage. Reuse existing Monocle services and deliberate service boundaries. AdonisJS with its own Edge or Inertia frontend can share one service and DSN. A separately deployed frontend uses a separate service.
 
-Read [the connection contract](reference/connection.md), [the signal requirements](reference/signals.md), and the reference for each runtime you need:
+Read [connection settings](reference/connection.md), [signal requirements](reference/signals.md), and the relevant runtime guide:
 
-- [Node.js](reference/nodejs.md), including official AdonisJS and browser SDK paths.
+- [Node.js, AdonisJS, and browser](reference/nodejs.md).
 - [Go](reference/go.md).
 - [Rust](reference/rust.md).
 - [Python](reference/python.md).
 
-If the stack is not listed, use its native OTel SDK and upstream documentation with the connection and signal references. Do not invent a Monocle package or unsupported framework API.
+For other stacks, use native OTel and upstream documentation. Check installed versions before choosing APIs.
 
-## 2. Choose the smallest useful setup
+## 2. Establish coverage
 
-Prefer an existing official Monocle SDK when it supports the application's installed framework version. Otherwise configure native OpenTelemetry and compatible upstream instrumentation. Extend an existing provider instead of installing a competing global provider.
+An explicit analytics-only request adds browser analytics only. Do not add backend instrumentation, error capture, identity, or source-map work. Preserve existing instrumentation.
 
-The default is technical coverage of the requested services:
+For a general installation, include:
 
-- Incoming HTTP requests, outgoing HTTP calls, and distributed trace context.
-- Database calls and jobs where compatible instrumentation exists.
-- Unhandled failures reported once, with useful exception type and stack information.
-- Existing application logs through an OTLP bridge, after checking what those logs contain.
-- Resource version metadata and supported runtime metrics where available.
+- Server requests, outgoing calls, and distributed context.
+- Supported database calls, jobs, runtime metrics, and release metadata.
+- Unhandled exceptions and existing application logs with native trace correlation.
+- Browser errors, when the application has a frontend.
+- Authenticated user ID, email, and name when available. Respect identity opt-outs and project restrictions. Do not add authentication or collect other profile fields.
+- Source-map preparation for compiled JavaScript error coverage, unless excluded. Uploads require a private project token and authorization.
 
-If a logger can emit secrets or personal data, exclude or redact those records before forwarding. If that cannot be done safely within scope, leave forwarding off and report the gap.
+Prefer official SDKs and their defaults. Extend existing providers rather than adding competing ones. Preserve logger sinks, useful diagnostic fields, and deliberate opt-outs. Apply the [privacy procedure](reference/privacy.md) to actual sensitive content, not hypothetical risks.
 
-Use the required attributes for each enabled feature. Do not ask users to choose individual semantic-convention keys. When a library lacks instrumentation, add a small local hook only if necessary for the promised coverage. Otherwise report the limit. Do not turn missing support into an adapter-development project.
+Ask one grouped question for relevant, supported options that remain undecided:
 
-## 3. Ask at most one enrichment question
+> The base setup includes server traces and logs, browser errors, user attribution with existing ID, email, and name, and source-map preparation. Would you also like analytics, session replay, or browser network tracing? Replay needs visitor consent and masking review. Source uploads need a private token and authorization.
 
-Inspect first. If relevant enrichments exist, ask one grouped question with a recommendation and wait for the answer before adding them:
+Adapt the question to the application. Include extra console capture or business spans only when relevant. Skip answered choices. Wait for the answer before enabling additions. In noninteractive runs, leave unrequested additions off without disabling existing collectors.
 
-> I found authenticated users and an order-processing workflow. Would you like opaque user IDs on telemetry, business spans around order processing, both, or neither? I recommend neither for the initial technical setup.
+If Sentry, PostHog, or another vendor overlaps, ask which features to retain or replace. Resolve that choice before adding overlapping instrumentation or removing an integration. Different features can use different vendors. Continue non-conflicting work. Vendor presence alone proves neither incompatibility nor a memory leak.
 
-Only offer choices that match the actual application. Skip the question if there are no relevant enrichments or the user already chose. If the user requests a noninteractive run, keep optional enrichments off.
+## 3. Resolve the connection
 
-Bodies, headers, cookies, credentials, and AI inputs or outputs are outside the standard setup. Do not offer a long settings questionnaire. For an explicit request to collect sensitive content, read [the privacy procedure](reference/privacy.md) and agree on a bounded capture policy first.
+Use the existing DSN and environment. Keep credentials out of tracked files, logs, and reports.
 
-Essential questions about an unknown project, consent, or missing credentials are separate from the enrichment question. Never guess their answers to avoid asking.
+With Monocle MCP, discover the current schemas and confirm the organization and project through `whoami`. With authorization, use `setup_service` for missing services and DSNs. Follow its SDK-specific instructions where available.
 
-## 4. Resolve the connection
+Without MCP, use an existing DSN or the service's **SDK connection** page. Do not change MCP configuration without permission. If credentials are missing, finish local configuration with an empty example value and report cloud verification as blocked. There is no test DSN.
 
-Use the user's existing DSN and environment when available. Never print the DSN or exporter headers. Keep real values out of tracked examples and reports.
+## 4. Configure the application
 
-If Monocle MCP tools are connected, discover their current schemas. Use `whoami` to confirm the organization and project. With authorization to create the required services and DSNs, call `setup_service` for missing connections and follow its current SDK-specific instructions. Do not assume it returns installation steps for every language. Do not create unrelated resources.
+Use its package manager, framework configurator, and startup hooks. Initialize telemetry once, before instrumented imports. Keep configuration in the existing application structure.
 
-Without MCP, use an existing DSN or direct the user to the service's **SDK connection** page. Do not install or change MCP configuration without permission. If credentials are unavailable, finish local configuration with an empty example value, validate locally where possible, and state that cloud verification remains blocked. There is no magic test DSN.
+Preserve exporters, error handlers, logger sinks, shutdown behavior, and exit codes. Use bounded batch exporters. Keep exporter diagnostics outside their own log bridge. Preserve async context and isolate concurrent requests.
 
-## 5. Configure and instrument
+Apply signal requirements only to agreed features. Prefer existing instrumentation. Add a local hook only for a demonstrated gap. Do not fabricate routes, durations, or attributes.
 
-Use the project's package manager and startup hooks. Initialize telemetry before the code it instruments, once per process. Preserve existing exporters, log sinks, signal handlers, error handlers, and exit codes.
+Use existing build and publication scripts. CI and Docker are not prerequisites. Do not create release infrastructure or deployment declarations without a request. Follow the runtime guide for version detection and source maps.
 
-Apply [signal requirements](reference/signals.md) only to the enabled features. Prefer compatible auto-instrumentation. Add missing attributes at the point that knows their values, such as a matched-route hook or job boundary. Never guess routes, durations, exception types, token usage, or queue latency.
+Keep body capture off by default. If an explicit option remains in configuration, explain its privacy and quota tradeoff with a short comment. Use multiline JSDoc in TypeScript. Do not restate every SDK default. Preserve AdonisJS Studio defaults.
 
-Keep configuration local to the existing application structure. Use batch exporters, bounded timeouts, and graceful shutdown. Do not export the exporters' own diagnostics back through the application log bridge. Preserve context across async work and isolate concurrent requests.
+## 5. Verify and report
 
-Do not change AdonisJS Studio defaults to force cloud export. Follow the temporary verification override in the Node.js reference instead.
+Run [verification](reference/verification.md) within the project's allowed checks. Report configured coverage, optional choices, executed checks, and remaining blockers. Distinguish configuration from actual emission and cloud storage.
 
-## 6. Verify and hand off
+For each blocker, name the missing feature and next credential, build, or publication step. Separate source-map preparation, upload, frame resolution, and deployment observations. Say which checks need a deployed build.
 
-Run [the verification procedure](reference/verification.md) for each configured service. Respect project guidance about allowed checks. A console exporter, empty OTLP request, or successful build alone does not prove the application reaches Monocle.
+Put the full report in your final reply. Leave the team one short recap that follows [the recap guide](reference/recap.md). Keep check IDs, audit evidence, and verification logs out of the repository.
 
-Report:
-
-- The services, signals, and relevant attributes configured.
-- The optional features enabled and those deliberately left off.
-- The executed checks and concrete observations, without credentials or captured private data.
-- One status per service: **cloud verified**, **local export verified**, or **not verified**, with the remaining blocker.
-- Any deployment environment variables or actions the user still needs to supply.
-
-Do not deploy, publish, commit, push, rotate credentials, or change remote infrastructure unless separately authorized. Leave unrelated files alone.
+Do not deploy, publish, commit, push, rotate credentials, or change remote infrastructure without separate authorization. Leave unrelated files alone.

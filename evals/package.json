@@ -1,0 +1,16 @@
+{
+  "name": "@monocle.sh/skill-evals",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "check": "node --test pilot.test.mjs",
+    "fixtures": "node fixtures.mjs",
+    "plan": "node pilot.mjs",
+    "pilot": "node pilot.mjs"
+  },
+  "dependencies": {
+    "@netlify/axis": "1.21.0",
+    "protobufjs": "7.6.6"
+  }
+}
