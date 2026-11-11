@@ -54,3 +54,7 @@ python3 scripts/validate.py
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contract sources and behavioral review scenarios.
+
+## Subscription-only evaluation pilot
+
+See [evals/README.md](evals/README.md) to prepare two pinned AdonisJS fixtures and inspect the AXIS plan without starting an agent. Executing the pilot is a separate, explicit command that uses an existing Claude Code or Codex subscription login. It is not a tested framework compatibility claim.
