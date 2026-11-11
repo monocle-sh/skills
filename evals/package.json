@@ -2,15 +2,21 @@
   "name": "@monocle.sh/skill-evals",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.34.6",
   "engines": { "node": ">=24" },
   "scripts": {
-    "check": "node --test pilot.test.mjs",
-    "fixtures": "node fixtures.mjs",
-    "plan": "node pilot.mjs",
-    "pilot": "node pilot.mjs"
+    "check": "node --test pilot.test.ts",
+    "typecheck": "tsc",
+    "fixtures": "node fixtures.ts",
+    "plan": "node pilot.ts",
+    "pilot": "node pilot.ts"
   },
   "dependencies": {
     "@netlify/axis": "1.21.0",
     "protobufjs": "7.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "6.0.3"
   }
 }
