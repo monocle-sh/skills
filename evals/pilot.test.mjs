@@ -177,7 +177,7 @@ test('runtime checks reject absent, duplicate, and wrong-kind spans and unrelate
     { data: { resourceLogs: [{ scopeLogs: [{ logRecords: [log] }] }] } },
   ]
   const checks = () => telemetryChecks({ packets, orderId: 'order-51' })
-  assert.ok(checks().every(({ pass }) => pass))
+  assert.ok(checks().slice(0, 2).every(({ pass }) => pass))
   log.traceId = 'trace-b'
   assert.equal(checks()[1].pass, false)
   packets[0].data.resourceSpans[0].scopeSpans[0].spans.push(span)
@@ -185,6 +185,48 @@ test('runtime checks reject absent, duplicate, and wrong-kind spans and unrelate
   span.kind = 3
   assert.equal(checks()[0].observed, 0)
   assert.ok(telemetryChecks({ packets: [], orderId: 'order-51' }).every(({ pass }) => !pass))
+})
+
+test('runtime checks require the release, the user on authenticated work, and one report per failure', () => {
+  const string = (key, value) => ({ key, value: { stringValue: value } })
+  const server = (traceId, path, extra = []) => ({ kind: 2, traceId, attributes: [string('url.path', path), ...extra], events: [] })
+  const order = server('t-order', '/pilot/orders/o-1')
+  const account = server('t-account', '/pilot/account/orders/o-2', [{ key: 'user.id', value: { intValue: '7' } }])
+  const anonymous = server('t-anon', '/pilot/failure')
+  const failing = server('t-auth', '/pilot/account/failure', [string('user.id', '7')])
+  const report = (traceId, message, extra = []) => ({
+    traceId, attributes: [string('monocle.log.source', 'exception_reporter'), string('exception.message', message), ...extra],
+  })
+  const anonymousReport = report('t-anon', 'PILOT_ORDER_FAILURE')
+  const accountReport = report('t-auth', 'PILOT_ACCOUNT_FAILURE', [string('user.id', '7')])
+  const logs = [{ traceId: 't-order', body: { stringValue: 'pilot-order' } }, anonymousReport, accountReport]
+  const resource = { attributes: [string('service.version', 'sha-1')] }
+  const packets = [
+    { data: { resourceSpans: [{ resource, scopeSpans: [{ spans: [order, account, anonymous, failing] }] }] } },
+    { data: { resourceLogs: [{ scopeLogs: [{ logRecords: logs }] }] } },
+  ]
+  const failed = () => telemetryChecks({ packets, orderId: 'o-1', account: { orderId: 'o-2', userId: 7 }, version: 'sha-1' })
+    .filter(({ pass }) => !pass).map(({ check }) => check)
+  assert.deepEqual(failed(), [])
+
+  // A span event on the server span is reportable too: with the log, the failure opens two issues.
+  anonymous.events.push({ name: 'exception', attributes: [string('exception.message', 'PILOT_ORDER_FAILURE')] })
+  assert.deepEqual(failed(), ['The anonymous failure is reported once'])
+  anonymous.events[0].attributes.push(string('monocle.exception.should_report', 'false'))
+  assert.deepEqual(failed(), [])
+
+  // An exception report without the user, or from another trace, does not attribute the failure.
+  accountReport.attributes.pop()
+  assert.deepEqual(failed(), ['The authenticated failure is reported once with the user ID'])
+  accountReport.attributes.push(string('user.id', '7'))
+  accountReport.traceId = 't-order'
+  assert.deepEqual(failed(), ['The authenticated failure is reported once with the user ID'])
+  accountReport.traceId = 't-auth'
+
+  account.attributes.pop()
+  resource.attributes = []
+  assert.deepEqual(failed(), ['Server spans carry the release version', 'The authenticated request span carries the user ID'])
+  assert.equal(telemetryChecks({ packets, orderId: 'o-1', version: 'sha-1' }).find(({ check }) => check.includes('authenticated request')).pass, false)
 })
 
 test('receiver decodes gzip OTLP protobuf and accepts OTLP JSON without an agent', { skip: !existsSync(join(root, '.axis/proto')) }, async () => {

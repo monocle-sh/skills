@@ -1,6 +1,6 @@
 # Prepare and run the subscription-only pilot
 
-This pilot runs the existing Monocle skills against two pinned AdonisJS 7 applications. It uses AXIS 1.21.0 for agent execution and reports. Deterministic local checks run independently of optional LLM scoring.
+This pilot runs the existing Monocle skills against four pinned AdonisJS 7 applications. It uses AXIS 1.21.0 for agent execution and reports. Deterministic local checks run independently of optional LLM scoring.
 
 The default command prints a plan. It does not invoke Claude, Codex, login commands, or a model.
 
@@ -19,18 +19,20 @@ Fixture preparation downloads public source, installs pinned dependencies with l
 
 The generated fixtures and reports stay under ignored `.axis/`. Preparation replaces only `.axis/fixtures/` and `.axis/proto/`, not previous reports. Skills are read from this checkout without installing them into your personal agent configuration.
 
-## Review the two cases
+## Review the four cases
 
-Both fixtures come from [adonisjs/starter-kits](https://github.com/adonisjs/starter-kits/tree/46d235932e3eb6472a16b740fa0b47b5f69fc6fc).
+All fixtures come from [adonisjs/starter-kits](https://github.com/adonisjs/starter-kits/tree/46d235932e3eb6472a16b740fa0b47b5f69fc6fc).
 
 | Case | Starting application | Delivery boundary |
 | --- | --- | --- |
 | `adonis-monorepo` | Official API monorepo, with its empty frontend filled by a small React and Vite application | Separate backend and frontend deployments |
+| `adonis-api` | Official API starter, without a frontend | One Adonis API deployment |
 | `adonis-inertia` | Official React Inertia starter, with SSR disabled as upstream configures it | One Adonis deployment including browser assets |
+| `adonis-inertia-vue` | Official Vue Inertia starter, with SSR disabled as upstream configures it | One Adonis deployment including browser assets |
 
-The existing auth, SQLite configuration, logging, and application routes remain. Each backend gets an order route and a failure route for local checks. There is no installed Monocle provider initially. The monorepo pilot has no worker or shared package yet. Those are later conditions, not coverage claimed by this first pair of runs.
+The existing auth, SQLite configuration, logging, and application routes remain. Each backend gets an order route and a failure route for local checks, plus the same two routes behind the starter's auth middleware. API starters authenticate with access tokens, Inertia starters with cookie sessions. There is no installed Monocle provider initially. The monorepo pilot has no worker or shared package yet. Those are later conditions, not coverage claimed by these runs.
 
-The task asks for local Studio instrumentation and preparation of the browser and source-map setup. No cloud DSN, MCP, upload token, or deployment token is available. Analytics and replay must remain disabled. A missing cloud credential must be reported, not invented.
+The task asks for local Studio instrumentation and preparation of the browser and source-map setup. It follows the onboarding defaults: user attribution when authentication exists, and source-map preparation. Local builds are allowed. No cloud DSN, MCP, upload token, or deployment token is available. Analytics and replay must remain disabled. A missing cloud credential must be reported, not invented.
 
 ## Run later with an existing subscription
 
@@ -57,7 +59,7 @@ npm run pilot -- --execute --agent codex --scenario adonis-inertia \
   --confirm-extra-usage-disabled --confirm-isolated-environment
 ```
 
-Omit `--scenario` to select both cases. There is one execution per case, sequentially. Agent work is limited to 10 minutes and an estimated 100,000 tokens per case. The overall AXIS agent budget is 25 minutes and an estimated 250,000 tokens. Token limits are streaming estimates, not exact billing caps. Runtime checks run after agent work and have their own readiness and request timeouts.
+Omit `--scenario` to select all cases. There is one execution per case, sequentially. Agent work is limited to 10 minutes and an estimated 100,000 tokens per case. The overall AXIS agent budget is 25 minutes and an estimated 250,000 tokens. Token limits are streaming estimates, not exact billing caps. Runtime checks run after agent work and have their own readiness and request timeouts.
 
 The launcher removes inherited API keys, gateways, provider variables, Node hooks, and project secrets before AXIS runs. It checks the CLI login method and rejects API authentication. Only the native `claude-code` and `codex` adapters are accepted. No SDK adapter, alternate provider, or automatic scenario retry is configured. Model judging is off unless you explicitly pass `--judge`. The run stops after a failed case. The native CLIs can still perform their own transient request retries.
 
@@ -82,7 +84,7 @@ The judge uses AXIS's native `scoreRunResult` and four equally weighted criteria
 3. Avoid unnecessary code, dependencies, duplicate configuration, and unrelated changes.
 4. Report configuration, actual verification, and blockers honestly.
 
-The criteria follow onboarding defaults: ID-only attribution with authenticated error coverage and source-map preparation for compiled JavaScript. They also check relevant grouped questions, per-feature vendor coexistence decisions, and actionable publication blockers without requiring CI or Docker. Explicit task restrictions win over defaults. The current pilot prompt explicitly disables identity and forbids builds, uploads, and deployment declarations; judging must not penalize respecting those restrictions. These two fixtures do not certify interactive question handling, default identity wiring, or vendor coexistence.
+The criteria follow onboarding defaults: user attribution with authenticated error coverage and source-map preparation for compiled JavaScript. They also check relevant grouped questions, per-feature vendor coexistence decisions, and actionable publication blockers without requiring CI or Docker. Explicit task restrictions win over defaults. The current pilot prompt forbids uploads and deployment declarations; judging must not penalize respecting those restrictions. The fixtures do not certify interactive question handling, browser identity, or vendor coexistence.
 
 If you later authorize execution, add `--judge` to the guarded Codex pilot command above. It requires one explicit `--scenario`. It runs the application agent once, then at most one fresh Codex judge invocation in the same isolated machine or container. This is not permission to rerun a previously authorized case. It does not score historical reports. Only goal achievement has nonzero scoring weight, so AXIS skips its three deep-evaluation judges. The same provider judges the result; this is not an independent-model assessment.
 
@@ -102,17 +104,21 @@ Each executed run writes an AXIS report and a separate `pilot.json` under `.axis
 
 The automated checks cover:
 
-- The order response and HTTP 500 behavior remain intact.
+- Database migrations still run, and the starter's own signup flow still works.
+- The order responses and HTTP 500 behavior remain intact, anonymous and authenticated.
 - The existing stdout logger still emits the order log.
 - Exactly one server span describes the exercised order request.
 - The order log has the same trace ID as that request.
+- Server telemetry carries the release from the platform's `GITHUB_SHA`. The SDK reads `GITHUB_SHA` by itself only inside GitHub Actions, so the app must pass it on.
+- The authenticated request's server span carries the user ID returned by the route.
+- Each failure produces exactly one reportable exception: an `exception` event on the server span or an exception reporter log in its trace. Records marked `monocle.exception.should_report=false` do not count. The authenticated failure carries the user ID.
 - The final completion report explicitly accounts for server, browser, source maps, deployments, analytics, and replay.
 
 The receiver uses pinned [OpenTelemetry protobuf definitions](https://github.com/open-telemetry/opentelemetry-proto/tree/a8951735f7801e8adfaec5c0ace9262771cfec6e). It decodes local HTTP OTLP JSON and protobuf, including gzip. It is not a Monocle authentication, storage, or symbolication service.
 
 Each case also records the source changes, added direct dependencies, changed production-file count, and net production-line delta. JSON configuration, Markdown, lockfiles, generated output, and dependencies are excluded from production-line counters but remain available in source changes where applicable. These counters do not decide whether code is necessary. Review the changes for duplicate initialization, adapter packages, unrelated refactors, and avoidable configuration.
 
-The completion report checks explicit dispositions, not whether every claim is true. Review claims against runtime evidence. Browser execution, privacy and consent behavior, source-map build and upload, resolved original frames, database instrumentation, shutdown export, and deployment version detection are not certified by this pilot. `fullIntegrationVerified` remains false even when its automated checks pass. Do not use it as a public compatibility or release certification.
+The completion report checks explicit dispositions, not whether every claim is true. Review claims against runtime evidence. Browser execution, privacy and consent behavior, source-map build and upload, resolved original frames, database instrumentation, shutdown export, and deployment detection in Monocle are not certified by this pilot. `fullIntegrationVerified` remains false even when its automated checks pass. Do not use it as a public compatibility or release certification.
 
 Reports can contain app source and agent transcripts. Review them before sharing. The provided fixtures use synthetic data only.
 
@@ -120,4 +126,4 @@ Reports can contain app source and agent transcripts. Review them before sharing
 
 `npm run check` makes no model calls. It checks plan-only execution, launch guards, subscription-auth rejection, credential filtering, omitted completion items, change reporting, and telemetry negative controls. A fake Codex executable exercises the native AXIS judge path with synthetic transcripts and grades. It checks one-invocation scoring, command flags, inherited scrubbed environment, withheld grades without retries, and unchanged agent evidence. It never reads a real login or evaluates an application. After fixture preparation the tests also exercise the receiver with independent gzip protobuf bytes and an OTLP JSON log. Without the downloaded schemas, that receiver test is explicitly skipped.
 
-The preparation was checked without any Claude or Codex execution. Both fixture typechecks passed. Both uninstrumented backends served the order and failure requests and kept their stdout logs. Their telemetry checks failed with zero spans, as the negative control requires. No browser rendering, production build, source-map upload, cloud ingestion, or subscription refresh was tested.
+The preparation was checked without any Claude or Codex execution. All four uninstrumented backends ran their migrations, completed signup, served the anonymous and authenticated order and failure requests, and kept their stdout logs. Their telemetry checks failed, as the negative control requires. The official agent configured by hand, with `Monocle.setUser` after authentication and the release from `GITHUB_SHA`, passed every check on the API and React Inertia starters. No browser rendering, production build, source-map upload, cloud ingestion, or subscription refresh was tested.

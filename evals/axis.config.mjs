@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
+import { cases } from './fixtures.mjs'
 
-export const fixtureNames = ['adonis-monorepo', 'adonis-inertia']
+export const fixtureNames = Object.keys(cases)
 export const skillPaths = ['../skills/onboarding-monocle', '../skills/auditing-monocle']
 
 export const judgeCriteria = [
@@ -53,12 +54,14 @@ Use auditing-monocle to inspect your result before finishing. Preserve the app's
 logging, and deployment boundaries. Prefer the official SDK and configurator.
 Configure local development telemetry for Monocle Studio at http://localhost:4200.
 There is no cloud DSN, MCP, upload token, or production access. Do not invent credentials.
-Prepare the browser integration and source-map steps for the existing outputs.
+${name === 'adonis-api'
+    ? 'This API has no browser frontend. Prepare the source-map steps for its server output.'
+    : 'Prepare the browser integration and source-map steps for the existing outputs.'}
 Use the existing release version mechanism. Do not add CI deployment declarations.
-Analytics and replay are intentionally disabled. Do not enable identity, body, header,
-cookie, or AI-content capture. Do not build, upload, deploy, push, or create remote resources.
-You may install dependencies, typecheck, and exercise the development app. No new telemetry
-package, generic adapter, or unrelated refactor is wanted. Stop at missing credentials.
+Analytics and replay are intentionally disabled. Keep body, header, cookie, and AI-content
+capture off. You may install dependencies, typecheck, build locally, and exercise the
+development app. Do not upload, deploy, push, or create remote resources.
+No new telemetry package, generic adapter, or unrelated refactor is wanted. Stop at missing credentials.
 Finish with a JSON object, optionally in a JSON fence, with a "capabilities" object.
 Include server, browser, source_maps, deployments, analytics, and replay. Each entry has
 "status" (configured, unverified, blocked, or disabled) and a short "evidence" string.
