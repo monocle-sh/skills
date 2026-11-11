@@ -2,6 +2,18 @@
 
 This reference describes the attributes that power Monocle features. A required attribute is required for the named feature, not for every span. Optional features remain optional even when their attributes are documented here.
 
+## Contents
+
+- [Resources](#resources)
+- [HTTP requests](#http-requests)
+- [Outgoing HTTP and distributed traces](#outgoing-http-and-distributed-traces)
+- [Database queries](#database-queries)
+- [Jobs and commands](#jobs-and-commands)
+- [Exceptions and logs](#exceptions-and-logs)
+- [Feature enrichment](#feature-enrichment)
+- [Metrics](#metrics)
+- [Compatibility](#compatibility)
+
 ## Resources
 
 | Attribute | Meaning |
