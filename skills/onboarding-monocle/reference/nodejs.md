@@ -87,12 +87,14 @@ Initialize `initMonocle` once at the frontend entry point with a browser-approve
 
 The default integration is `errors()` only. An explicit integration array replaces defaults. Keep `errors()` for general error coverage, or use `[analytics()]` for a new analytics-only setup. Preserve existing collectors. Browser network, console, analytics, and replay capture require selection.
 
+`errors()` sees only errors that reach the window. Vue catches errors from components, event handlers, and `setup`, then only logs them, so none reach Monocle. In a Vue application, including Inertia's `createInertiaApp` setup, set `app.config.errorHandler` to call the client's `captureException(error)`. Keep calling a handler the application already had.
+
 - For authenticated error attribution, call the client's `setUser({ id, email, name })` with available, permitted fields. Restore it after reload, replace it on account changes, and clear it with `setUser(null)` when anonymous or logged out. Context also applies to enabled logs and network events. Analytics does not inherit this identity, and analytics-only setup needs no identity hook.
 - For selected network tracing, configure `network()` with propagation restricted to the application's APIs. Inspect preflight responses before changing CORS. Preserve other allowed headers and origins.
 - For selected analytics, use `analytics()`. Avoid duplicate router page views and personal event properties.
 - For selected replay, check support for the experimental replay entry. `replay()` does not start recording. Connect `grantConsent()` and `revokeConsent()` to visitor consent controls. Agree on sampling and masking. Inputs are masked by default, visible text and media are not. Review synthetic recordings and block sensitive subtrees. Replay identity needs separate approval. Without consent controls or verification, report replay as prepared but inactive.
 
-Use the frontend's existing authentication state, not an HTTP interceptor. In React, synchronize through an effect on that state. Reuse an existing Tuyau-backed TanStack auth query cache, or Inertia's `usePage()` inside a persistent layout. Do not add an auth endpoint, request, or global router listener when that state is already available. Clean up any necessary listeners on teardown and HMR.
+Use the frontend's existing authentication state, not an HTTP interceptor. In React, synchronize through an effect on that state. Reuse an existing Tuyau-backed TanStack auth query cache, or Inertia's `usePage()` inside a persistent layout. Do not mount the identity component beside Inertia's root `App`: it runs before the first page, and `usePage()` has no props yet. Do not add an auth endpoint, request, or global router listener when that state is already available. Clean up any necessary listeners on teardown and HMR.
 
 ## Prepare source maps and releases
 
