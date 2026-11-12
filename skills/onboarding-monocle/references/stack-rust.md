@@ -19,7 +19,7 @@ The `monocle-sh-sdk` crate exposes `monocle` in Rust code. It sends `tracing` sp
 Rust issues show raw frames until the build's debug file is uploaded. For Linux x86_64 ELF/DWARF builds, follow [native symbols](https://monocle.sh/docs/sdks/native-symbols):
 
 - Keep `debug = 1` and `strip = false` in the release profile, so the build keeps functions, files, and lines.
-- After the final build, run `npx @monocle.sh/cli debug-files upload <binary>` with `MONOCLE_API_KEY` from authorized CI secrets. The CLI 0.6 or later needs Node.js 22.12 or later. Pass the commit with `--release` when the pipeline has one.
+- After the final build, run `npx @monocle.sh/cli debug-files upload <binary>` with `MONOCLE_API_KEY` from the CI secrets. The CLI 0.6 or later needs Node.js 22.12 or later. Pass the commit with `--release` when the pipeline has one.
 - `--include-sources` uploads checkout files for code excerpts. Add it only with source-upload authorization. `debug-files check` lists the files first.
 - Strip the binary after the upload and deploy that binary. A rebuild produces a new build ID.
 - In a Docker build, export the unstripped binary from a dedicated stage and upload it from the CI checkout. Never pass the token to the build stage.

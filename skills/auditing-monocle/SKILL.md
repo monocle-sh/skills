@@ -13,9 +13,9 @@ For a general audit, list deployable services and classify their coverage as ins
 
 If intent changes a finding and cannot be recovered, ask rather than assume.
 
-General onboarding includes server traces, errors, existing application logs, supported metrics, and browser errors. Authenticated error coverage adds the user's ID, email, and name when available. Compiled JavaScript error coverage adds source-map preparation. Respect explicit exclusions and project restrictions.
+General onboarding includes server traces, errors, existing application logs, supported metrics, and browser errors. Authenticated error coverage adds the user's ID, email, and name when available. Compiled JavaScript error coverage adds source-map upload from CI. Respect explicit exclusions and project restrictions.
 
-Browser network, analytics, replay, extra console capture, and other profile fields require selection. Source uploads require authorization. An analytics-only request needs browser analytics, not new backend instrumentation. Preserve existing backend coverage.
+Browser network, analytics, replay, extra console capture, and other profile fields require selection. Source-code uploads for code excerpts require authorization. An analytics-only request needs browser analytics, not new backend instrumentation. Preserve existing backend coverage.
 
 For a specific symptom, start with the affected service and signal. Establish the project, environment, time window, and deployed version. Ask only for missing facts that affect the diagnosis.
 

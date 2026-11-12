@@ -34,7 +34,7 @@ Do not enable an unselected feature to test it. Configuration inspection alone d
 
 Inspect the actual CI, platform build, or manual publication path. CI and Docker are not required. Check the real version source and the artifact's retained metadata.
 
-For compiled JavaScript error coverage, check each relevant browser and server output. Verify debug-ID injection, authorized upload, private token handling, and exclusion of public `.map` files. Source maps match debug IDs, independently of deployment declarations.
+For compiled JavaScript error coverage, check each relevant browser and server output. Verify debug-ID injection, the CI upload step or recap commands, private token handling, and exclusion of public `.map` files. Source maps match debug IDs, independently of deployment declarations.
 
 With authorization and credentials, verify an original source frame from the matching deployed build in Monocle. A plugin entry or successful build does not prove upload or resolution. Report missing tokens, upload steps, deployed builds, and verified frames separately. Give the concrete next step and the check to rerun after publication. Do not create deployment infrastructure to close a verification gap.
 
