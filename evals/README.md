@@ -9,11 +9,14 @@ The default command prints a plan. It does not invoke Claude, Codex, login comma
 Use Node.js 24 or later and pnpm 10.34.6. Run these commands from `evals/`:
 
 ```sh
-npm ci --ignore-scripts
-npm run fixtures
-npm run check
-npm run plan
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm fixtures
+pnpm check
+pnpm typecheck
+pnpm plan
 ```
+
+The harness is TypeScript run directly by Node.js type stripping, without a build step. `pnpm typecheck` runs `tsc` without emitting files. Pass pilot options directly after the script name, without `--`: pnpm forwards a literal `--`, which the launcher rejects.
 
 Fixture preparation downloads public source, installs pinned dependencies with lifecycle scripts disabled, and populates a local pnpm store. It does not build applications, upload telemetry, read agent credentials, or start agents. The first preparation needs network access. Subsequent fixture installations use the checked-in lockfiles. Do not regenerate lockfiles to compare skill revisions.
 
@@ -48,14 +51,14 @@ Use a disposable machine or container that contains only the permitted subscript
 For Claude Code:
 
 ```sh
-npm run pilot -- --execute --agent claude-code --scenario adonis-inertia \
+pnpm pilot --execute --agent claude-code --scenario adonis-inertia \
   --confirm-extra-usage-disabled --confirm-isolated-environment
 ```
 
 For Codex:
 
 ```sh
-npm run pilot -- --execute --agent codex --scenario adonis-inertia \
+pnpm pilot --execute --agent codex --scenario adonis-inertia \
   --confirm-extra-usage-disabled --confirm-isolated-environment
 ```
 
@@ -74,10 +77,10 @@ AXIS currently expects Codex's local `auth.json` for session propagation. A keyc
 Inspect the judge plan without running a model or reading a login:
 
 ```sh
-npm run plan -- --judge --agent codex --scenario adonis-inertia
+pnpm plan --judge --agent codex --scenario adonis-inertia
 ```
 
-The judge uses AXIS's native `scoreRunResult` and four equally weighted criteria in `axis.config.mjs`:
+The judge uses AXIS's native `scoreRunResult` and four equally weighted criteria in `axis.config.ts`:
 
 1. Respect the requested capabilities without additional collection.
 2. Use the official SDKs correctly for the existing application.
@@ -92,7 +95,7 @@ The judge runs before workspace cleanup. It receives the condensed transcript, f
 
 The four grades use AXIS's 0 to 10 scale. Their equal-weight average becomes the goal score out of 100 and the composite score. The other three dimension scores are AXIS defaults with zero weight, not measured grades. There is no quality pass threshold yet. A high judge score cannot override failed HTTP or telemetry checks. An unusable judge response is recorded as `withheld`, not a measured zero, and causes a nonzero pilot exit. An agent execution failure skips the model judge. No pilot scoring retry is configured.
 
-Use only `pilot.mjs` to execute this pilot. Direct `axis run` or scoring calls bypass its billing, authentication, and environment guards. In AXIS 1.21.0, the native judge path does not apply the runner's remapped HOME or adapter isolation variables. It inherits the launcher's scrubbed environment and reads the permitted Codex login from that process's HOME. Therefore that HOME must belong to the disposable execution environment and contain only the authorized session, not your Mac's normal configuration.
+Use only `pilot.ts` to execute this pilot. Direct `axis run` or scoring calls bypass its billing, authentication, and environment guards. In AXIS 1.21.0, the native judge path does not apply the runner's remapped HOME or adapter isolation variables. It inherits the launcher's scrubbed environment and reads the permitted Codex login from that process's HOME. Therefore that HOME must belong to the disposable execution environment and contain only the authorized session, not your Mac's normal configuration.
 
 The judge disables AXIS's sandbox bypass and requests Codex's `--sandbox read-only`. The preparation test verifies the generated command and environment using a fake executable. It does not verify real Codex authentication, token refresh, or sandbox enforcement. Keep the actual machine or container isolation requirement even with this flag. Do not mount your normal home, other credentials, or a Docker socket.
 
@@ -124,6 +127,6 @@ Reports can contain app source and agent transcripts. Review them before sharing
 
 ## Check the preparation
 
-`npm run check` makes no model calls. It checks plan-only execution, launch guards, subscription-auth rejection, credential filtering, omitted completion items, change reporting, and telemetry negative controls. A fake Codex executable exercises the native AXIS judge path with synthetic transcripts and grades. It checks one-invocation scoring, command flags, inherited scrubbed environment, withheld grades without retries, and unchanged agent evidence. It never reads a real login or evaluates an application. After fixture preparation the tests also exercise the receiver with independent gzip protobuf bytes and an OTLP JSON log. Without the downloaded schemas, that receiver test is explicitly skipped.
+`pnpm check` makes no model calls. It checks plan-only execution, launch guards, subscription-auth rejection, credential filtering, omitted completion items, change reporting, and telemetry negative controls. A fake Codex executable exercises the native AXIS judge path with synthetic transcripts and grades. It checks one-invocation scoring, command flags, inherited scrubbed environment, withheld grades without retries, and unchanged agent evidence. It never reads a real login or evaluates an application. The judge test replaces `process.env`; Node.js 26 no longer resolves the fake executable from a replaced `process.env`, so run the checks with Node.js 24. The launcher itself scrubs `process.env` in place, which both versions honor. After fixture preparation the tests also exercise the receiver with independent gzip protobuf bytes and an OTLP JSON log. Without the downloaded schemas, that receiver test is explicitly skipped.
 
 The preparation was checked without any Claude or Codex execution. All four uninstrumented backends ran their migrations, completed signup, served the anonymous and authenticated order and failure requests, and kept their stdout logs. Their telemetry checks failed, as the negative control requires. The official agent configured by hand, with `Monocle.setUser` after authentication and the release from `GITHUB_SHA`, passed every check on the API and React Inertia starters. No browser rendering, production build, source-map upload, cloud ingestion, or subscription refresh was tested.
