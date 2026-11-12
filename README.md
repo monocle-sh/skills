@@ -1,60 +1,33 @@
+<img width="1500" height="500" alt="Monocle" src="https://github.com/user-attachments/assets/45d9a45e-2b49-40c3-86af-1fe3ce26858d" />
+
 # Monocle skills
 
-Agent skills for connecting an application to [Monocle](https://monocle.sh) and checking its telemetry.
+Agent skills that set up [Monocle](https://monocle.sh) in your application and check its telemetry.
 
-| Skill | Use it to |
+| Skill | What it does |
 | --- | --- |
-| [onboarding-monocle](skills/onboarding-monocle/SKILL.md) | Configure official SDKs or native OpenTelemetry in an application or monorepo. Works in any language with an OpenTelemetry SDK, with dedicated references for AdonisJS, Next.js, other Node.js servers, browsers, Go, Python, and Rust. |
-| [auditing-monocle](skills/auditing-monocle/SKILL.md) | Review an existing installation or investigate a specific missing or incorrect signal. Makes no changes unless requested. |
+| [onboarding-monocle](skills/onboarding-monocle/SKILL.md) | Installs Monocle in an existing application: traces, logs, metrics, errors, user attribution, and source maps. Uses the official Monocle SDK when the stack has one, and OpenTelemetry otherwise. |
+| [auditing-monocle](skills/auditing-monocle/SKILL.md) | Reviews an existing installation and finds why a signal is missing or wrong. Changes nothing unless you ask. |
 
-The onboarding skill configures applications. It does not ask users to build or publish Monocle adapters. Both skills work without the Monocle MCP. Each skill includes its own references and can be installed separately.
-
-## Install in a project
-
-This repository is private for now. The account used to clone it needs access. Do not put a GitHub token in a command or a project file.
-
-Clone this repository outside the application you want to instrument:
+## Install
 
 ```sh
-git clone https://github.com/monocle-sh/skills.git monocle-skills
+npx skills add monocle-sh/skills
 ```
 
-Copy the complete directory of each selected skill, including `references/`, into the skill directory your agent supports. For agents that discover `.agents/skills/`, the resulting paths are:
+The CLI asks which skills and which agents to install. To install by hand, copy each `skills/<name>/` directory, including its `references/` folder, into your agent's skills directory.
 
-```text
-.agents/skills/onboarding-monocle/SKILL.md
-.agents/skills/onboarding-monocle/references/...
-.agents/skills/auditing-monocle/SKILL.md
-.agents/skills/auditing-monocle/references/...
-```
+## Use
 
-Keep existing skills intact. Follow your agent's reload instructions after installation. Installing only a `SKILL.md` loses the bundled references.
+Ask your agent, for example:
 
-## Use the skills
-
-Example requests:
-
-- "Set up Monocle in this monorepo. Use the existing project and keep personal data out of telemetry."
-- "Connect this Go API to Monocle with OpenTelemetry. I already have a DSN."
+- "Set up Monocle in this AdonisJS app."
+- "Connect this Go API to Monocle. I already have a DSN."
 - "Audit this Monocle installation without editing files."
 - "Find why PostgreSQL queries do not appear in Monocle for staging."
 
-General onboarding includes technical instrumentation, authenticated user attribution with ID, email, and name when available, and source-map preparation for compiled JavaScript. Explicit opt-outs and project privacy restrictions take precedence. Analytics, replay, browser network capture, and business spans are optional. Other profile fields, HTTP bodies, headers, cookies, and AI content are not captured by default. Source-code uploads need authorization and a private project token.
+The agent asks before it enables analytics, session replay, or browser network tracing. It adds the source-map upload to your CI with a `MONOCLE_API_KEY` secret, and never asks you to paste a token. It does not deploy or push.
 
-The agent inspects before asking one grouped question about relevant optional coverage. If another vendor is installed, it asks which features to retain or replace before overlapping changes. CI and Docker are not required. Missing credentials or publication steps are reported with their feature impact and concrete next actions, without inventing deployment infrastructure.
+## Contribute
 
-## Validation status
-
-This first draft documents the Monocle ingestion contract and language-specific integration procedures. The language references are not prebuilt bootstraps or a tested framework compatibility matrix. An agent must check the application's installed SDK APIs and execute the verification steps before claiming that an installation works.
-
-Repository validation checks skill metadata, bundled links, and document structure. It does not prove that an application exports telemetry.
-
-```sh
-python3 scripts/validate.py
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contract sources and behavioral review scenarios.
-
-## Subscription-only evaluation pilot
-
-See [evals/README.md](evals/README.md) to prepare two pinned AdonisJS fixtures and inspect the AXIS plan without starting an agent. Executing the pilot is a separate, explicit command that uses an existing Claude Code or Codex subscription login. It is not a tested framework compatibility claim.
+Run `python3 scripts/validate.py` after editing a skill. [evals/](evals/README.md) runs the onboarding skill against AdonisJS starters with [AXIS](https://www.npmjs.com/package/@netlify/axis). See [CONTRIBUTING.md](CONTRIBUTING.md).
